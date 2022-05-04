@@ -1,0 +1,17 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "module": "CommonJS",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "noImplicitAny": true,
+    "preserveConstEnums": true,
+    "removeComments": true,
+    "sourceMap": true,
+    "declaration": true,
+    "target": "ES2022",
+    "outDir": "dist"
+  },
+  "exclude": ["node_modules", "*/.spec.ts"],
+  "include": ["src/*/"]
+}
