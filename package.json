@@ -7,12 +7,14 @@
     "start": "ts-node ./src",
     "start:prod": "tsc && node ./dist",
     "start:test": "ts-node ./src/users/users.service.ts",
+    "start:script": "ts-node ./src/types.ts",
     "build": "tsc"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
     "@types/compression": "^1.7.2",
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
@@ -28,6 +30,7 @@
     "typescript": "^4.6.3"
   },
   "dependencies": {
+    "@casl/ability": "^5.4.3",
     "bcrypt": "^5.0.1",
     "body-parser": "^1.20.0",
     "compression": "^1.7.4",

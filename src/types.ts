@@ -25,10 +25,23 @@ interface Interface2 extends Interface {
 
 class Gen<TypeG> implements Interface2 {
 	attr1: string;
-	atributos: any;
-	metodos() {}
-
 	attr2: string;
+
+	dataValues = {
+		name: "ezequiel",
+		email: "",
+	};
+
+	get name() {
+		return this.dataValues.name;
+	}
+
+	set email(v: string) {
+		// compare
+		this.dataValues.name = v;
+	}
+
+	metodos() {}
 }
 
 function f<TypeG>(c: TypeG): TypeG {
@@ -38,6 +51,9 @@ function f<TypeG>(c: TypeG): TypeG {
 }
 
 const t2: Type2 = { attr1: "", attr2: "" };
-const t: Type = t2;
+const t: Gen<any> = new Gen<any>();
+t.attr1 = "attr";
+console.log(t.name);
+console.log(t.name);
 
 const e: EnumT = "ENUM1";

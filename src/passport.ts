@@ -13,7 +13,6 @@ passport.use(
 			userService
 				.findOneById(+jwt.sub)
 				.then((user) => {
-					console.log(user);
 					if (user) {
 						return done(null, user);
 					} else {

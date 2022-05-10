@@ -1,6 +1,6 @@
-import * as _ from "lodash";
 import {
 	Attributes,
+	CreateOptions,
 	CreationAttributes,
 	FindOptions,
 	Model,
@@ -9,9 +9,36 @@ import {
 } from "sequelize";
 import { Col, Fn, Literal } from "sequelize/types/utils";
 
-type updateData<R, C, T extends Model<R, C>> = {
+export type updateData<R, C, T extends Model<R, C>> = {
 	[key in keyof Attributes<T>]?: Attributes<T>[key] | Fn | Col | Literal;
 };
+
+function keysOf(obj: any) {
+	return Reflect.ownKeys(obj);
+}
+
+function merge<T extends any>(target: T, ...args: T[]): T {
+	for (let i = 0; i < args.length; i++) {
+		const keys = keysOf(args[i] || {});
+		for (let j = keys.length - 1; j >= 0; j--) {
+			const key = keys[j] as keyof T;
+			if (
+				["boolean", "string", "number", "undefined"].includes(
+					typeof args[i][key]
+				) ||
+				Array.isArray(args[i][key]) ||
+				args[i][key] === null
+			) {
+				target[key] = args[i][key];
+			} else {
+				if (!target[key]) target[key] = {} as any;
+				target[key] = merge(target[key], args[i][key]);
+			}
+		}
+	}
+
+	return target;
+}
 
 export class Service<R, C, T extends Model<R, C>> {
 	protected deletedField = "deleted_at";
@@ -24,21 +51,21 @@ export class Service<R, C, T extends Model<R, C>> {
 		this.optionsDefault = { where: { ...deleteDate }, raw: this.raw };
 	}
 
-	create(data: CreationAttributes<T>) {
-		return this.model.create(data);
+	create(data: CreationAttributes<T>, options?: CreateOptions<Attributes<T>>) {
+		return this.model.create(data, options);
 	}
 
 	count(options?: FindOptions<T>) {
-		return this.model.count(_.merge(this.optionsDefault, options));
+		return this.model.count(merge({}, this.optionsDefault, options));
 	}
 
 	findAll(options?: FindOptions<T>) {
-		return this.model.findAll(_.merge(this.optionsDefault, options));
+		return this.model.findAll(merge({}, this.optionsDefault, options));
 	}
 
 	findOneById(id: number, options?: FindOptions<T>) {
 		return this.model.findOne(
-			_.merge({ where: { id } }, this.optionsDefault, options)
+			merge({ where: { id } } as any, this.optionsDefault, options)
 		);
 	}
 
@@ -52,9 +79,12 @@ export class Service<R, C, T extends Model<R, C>> {
 		});
 	}
 
-	remove(id: number) {
+	remove(
+		id: number,
+		options?: Omit<UpdateOptions<Attributes<T>>, "returning">
+	) {
 		const deleteDate: any = { [this.deletedField]: new Date() };
 		const where: any = { id };
-		return this.update(deleteDate, { where: { ...where } });
+		return this.update(deleteDate, merge({ where: { ...where } }, options));
 	}
 }

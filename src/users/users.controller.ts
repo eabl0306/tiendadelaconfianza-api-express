@@ -1,15 +1,36 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { IUserRead } from "./dto/user-read.dto";
 import { userService } from "./users.service";
+import { IUserCreate } from "./dto/user-create.dto";
+import { encrypt } from "../utilities/encrypt";
+import { EUserRole } from "./dto/user.dto";
+import { Request } from "../utilities/request";
+import { UserModel } from "./models/user.model";
 
-export async function get(req: Request, res: Response) {
+export async function findOneById(req: Request, res: Response) {
 	const user: IUserRead = await userService.findOneById(+req.params.id);
 	res.status(200).json(user);
 }
 
-export async function getByEmail(req: Request, res: Response) {
-	const user: IUserRead = await userService.findOneByEmail(
-		`${req.params.email}`
-	);
+export async function findAll(req: Request<UserModel>, res: Response) {
+	const users: IUserRead[] = await userService
+		.findAll(req.conditions)
+		.then((it) => it.map((it) => it.toJSON()));
+	const total: number = await userService.count(req.conditions);
+	res.status(200).json({ data: users, total });
+}
+
+export async function create(req: Request, res: Response) {
+	const data = req.body as IUserCreate;
+
+	data.role = EUserRole.USER;
+	data.password = encrypt(data.password);
+
+	const user: IUserRead = await userService
+		.create(data)
+		.then((it) => it.toJSON());
+
+	delete user.password;
+
 	res.status(200).json(user);
 }

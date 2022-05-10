@@ -4,6 +4,7 @@ import { UserModel } from "../../users/models/user.model";
 import { IProductRead } from "../dto/product-read.dto";
 import { IProductCreate } from "../dto/product-create.dto";
 import { IUserRead } from "../../users/dto/user-read.dto";
+import Sync from "../../utilities/syncDB";
 
 export class ProductModel
 	extends Model<IProductRead, IProductCreate>
@@ -63,4 +64,4 @@ ProductModel.belongsTo(UserModel, {
 
 UserModel.hasMany(ProductModel, { as: "products", foreignKey: "user_id" });
 
-ProductModel.sync({ alter: true }).then();
+Sync.register(ProductModel);
