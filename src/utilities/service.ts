@@ -8,37 +8,11 @@ import {
 	UpdateOptions,
 } from "sequelize";
 import { Col, Fn, Literal } from "sequelize/types/utils";
+import { merge } from "./merge";
 
 export type updateData<R, C, T extends Model<R, C>> = {
 	[key in keyof Attributes<T>]?: Attributes<T>[key] | Fn | Col | Literal;
 };
-
-function keysOf(obj: any) {
-	return Reflect.ownKeys(obj);
-}
-
-function merge<T extends any>(target: T, ...args: T[]): T {
-	for (let i = 0; i < args.length; i++) {
-		const keys = keysOf(args[i] || {});
-		for (let j = keys.length - 1; j >= 0; j--) {
-			const key = keys[j] as keyof T;
-			if (
-				["boolean", "string", "number", "undefined"].includes(
-					typeof args[i][key]
-				) ||
-				Array.isArray(args[i][key]) ||
-				args[i][key] === null
-			) {
-				target[key] = args[i][key];
-			} else {
-				if (!target[key]) target[key] = {} as any;
-				target[key] = merge(target[key], args[i][key]);
-			}
-		}
-	}
-
-	return target;
-}
 
 export class Service<R, C, T extends Model<R, C>> {
 	protected deletedField = "deleted_at";

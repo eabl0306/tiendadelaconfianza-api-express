@@ -6,6 +6,7 @@ import { encrypt } from "../utilities/encrypt";
 import { EUserRole } from "./dto/user.dto";
 import { Request } from "../utilities/request";
 import { UserModel } from "./models/user.model";
+import { Op } from "sequelize";
 
 export async function findOneById(req: Request, res: Response) {
 	const user: IUserRead = await userService.findOneById(+req.params.id);
@@ -14,9 +15,15 @@ export async function findOneById(req: Request, res: Response) {
 
 export async function findAll(req: Request<UserModel>, res: Response) {
 	const users: IUserRead[] = await userService
-		.findAll(req.conditions)
+		.findAll({
+			where: { [Op.and]: [{ id: 2 }, req.queryAbilities] },
+			...req.pagination,
+		})
 		.then((it) => it.map((it) => it.toJSON()));
-	const total: number = await userService.count(req.conditions);
+	const total: number = await userService.count({
+		where: { [Op.and]: [{ id: 2 }, req.queryAbilities] },
+		...req.pagination,
+	});
 	res.status(200).json({ data: users, total });
 }
 
