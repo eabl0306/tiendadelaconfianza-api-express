@@ -16,7 +16,7 @@ export async function findOneById(req: Request, res: Response) {
 export async function findAll(req: Request<UserModel>, res: Response) {
 	const users: IUserRead[] = await userService
 		.findAll({
-			where: { [Op.and]: [{ id: 2 }, req.queryAbilities] },
+			where: { [Op.and]: [req.queryAbilities] },
 			...req.pagination,
 		})
 		.then((it) => it.map((it) => it.toJSON()));

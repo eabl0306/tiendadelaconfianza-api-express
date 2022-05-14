@@ -16,7 +16,13 @@ router.get(
 	controller(findOneById)
 );
 
-router.get("/", pagination, permissions, controller(findAll));
+router.get(
+	"/",
+	passport.authenticate("jwt"),
+	pagination,
+	permissions,
+	controller(findAll)
+);
 
 router.post("/", controller(create));
 

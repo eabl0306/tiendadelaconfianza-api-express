@@ -1,4 +1,5 @@
 export enum EUserRole {
+	SUPER_ADMIN = "SUPER_ADMIN",
 	ADMIN = "ADMIN",
 	USER = "USER",
 }

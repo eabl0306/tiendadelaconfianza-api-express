@@ -2,11 +2,12 @@ import { Ability, AbilityBuilder, AbilityClass } from "@casl/ability";
 import { Rule } from "@casl/ability/dist/types/Rule";
 import { rulesToQuery } from "@casl/ability/extra";
 import { NextFunction, Response } from "express";
-import { Op } from "sequelize";
+import { Op, WhereOptions } from "sequelize";
 import { Request } from "../request";
 import { IUserRead } from "../../users/dto/user-read.dto";
 import { IProductRead } from "../../products/dto/product-read.dto";
 import { Forbidden } from "http-errors";
+import { EUserRole } from "../../users/dto/user.dto";
 
 type Methods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 type Actions = "manage" | "create" | "read" | "update" | "delete";
@@ -48,7 +49,7 @@ function toSequelizeQuery(
 	return query === null ? query : symbolize(query);
 }
 
-function makeAbility(
+async function makeAbility(
 	user: IUserRead | undefined,
 	subject: string,
 	action: Actions,
@@ -57,26 +58,76 @@ function makeAbility(
 	type AppAbility = Ability<[Actions, SubjectsAndStructures]>;
 	const ability = Ability as AbilityClass<AppAbility>;
 
-	const { can, cannot, build } = new AbilityBuilder(ability);
+	const { can, build } = new AbilityBuilder(ability);
 
-	if (user) {
-		if (user.role === "ADMIN") {
-			can("manage", "all");
-		} else {
-			can("read", "users", { id: user.id });
-			can("update", "users", { id: user.id });
+	if (user && user.role === EUserRole.SUPER_ADMIN) {
+		can("manage", "all");
+		return build();
+	}
 
-			can("read", "products");
+	type PermissionsQuery =
+		| WhereOptions
+		| ((
+				user: IUserRead | undefined,
+				subject: string,
+				action: Actions,
+				target: string | number
+		  ) => Promise<WhereOptions>);
+	type Permissions = {
+		module: Subjects;
+		action: Actions[];
+		query?: PermissionsQuery;
+	};
+
+	async function getActiveProduct() {
+		//
+		return {};
+	}
+
+	async function applyPermission(permissions: Permissions[]) {
+		for (let i = 0; i < permissions.length; i++) {
+			const permission = permissions[i];
+			if (permission.module === subject && permission.action.includes(action)) {
+				const query =
+					(typeof permission.query === "function"
+						? await permission.query(user, subject, action, target)
+						: permission.query) || {};
+				can(permission.action, permission.module, query);
+			}
 		}
-	} else {
-		can("create", "users");
-		can("read", "products");
+	}
+
+	if (user && user.role === EUserRole.ADMIN) {
+		const userPermissions: Permissions[] = [
+			{ module: "products", action: ["create", "update", "delete"] },
+		];
+		await applyPermission(userPermissions);
+	}
+
+	if (user && [EUserRole.ADMIN, EUserRole.USER].includes(user.role)) {
+		const userPermissions: Permissions[] = [
+			{ module: "products", action: ["read"], query: getActiveProduct },
+			{ module: "users", action: ["read"], query: { id: user.id } },
+		];
+		await applyPermission(userPermissions);
+	}
+
+	if (!user) {
+		const userPermissions: Permissions[] = [
+			{ module: "products", action: ["read"], query: getActiveProduct },
+			{ module: "users", action: ["create"] },
+		];
+		await applyPermission(userPermissions);
 	}
 
 	return build();
 }
 
-export function permissions(req: Request, res: Response, nf: NextFunction) {
+export async function permissions(
+	req: Request,
+	res: Response,
+	nf: NextFunction
+) {
 	try {
 		if (!req.queryAbilities) req.queryAbilities = {};
 
@@ -87,10 +138,10 @@ export function permissions(req: Request, res: Response, nf: NextFunction) {
 			? req.params.id
 			: +req.params.id;
 
-		const ability = makeAbility(req.user, subject, action, target);
+		const ability = await makeAbility(req.user, subject, action, target);
 
 		if (!ability.can(action, subject)) {
-			throw new Forbidden("Access Denied");
+			errorForbidden();
 		}
 
 		req.queryAbilities = toSequelizeQuery(ability, subject, action);
@@ -101,4 +152,8 @@ export function permissions(req: Request, res: Response, nf: NextFunction) {
 			.status(e.status)
 			.send({ name: e.name, message: e.message, stack: e.stack });
 	}
+}
+
+function errorForbidden() {
+	throw new Forbidden("Access Denied");
 }
